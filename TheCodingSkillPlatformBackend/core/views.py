@@ -6,11 +6,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.shortcuts import render
 from rest_framework import viewsets
-from .models import User, AdminUser, Skill, Language, Test, Question, Submission, Report, FaceVerificationLog
+from .models import User, AdminUser, Skill, Language, Test, Question, Submission, Report, FaceVerificationLog, TestSeries
 from .serializers import (
     UserSerializer, AdminUserSerializer, SkillSerializer,
     LanguageSerializer, TestSerializer, QuestionSerializer,
-    SubmissionSerializer, ReportSerializer, FaceVerificationLogSerializer
+    SubmissionSerializer, ReportSerializer, FaceVerificationLogSerializer,
+    TestSeriesSerializer, SubmissionDetailSerializer
 )
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -122,3 +123,70 @@ def get_user_data(request):
         'live_scan_photo': user.live_scan_photo.url if user.live_scan_photo else None,
     })
 
+# ============================
+# 🚀 TestSeries & Test APIs
+# ============================
+
+from rest_framework.decorators import action
+
+class TestSeriesViewSet(viewsets.ModelViewSet):
+    """
+    Handles creation & retrieval of TestSeries.
+    When created, it automatically triggers signals to generate tests & questions.
+    """
+    queryset = TestSeries.objects.all().select_related('user', 'skill')
+    serializer_class = TestSeriesSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        # Automatically attach the logged-in user
+        serializer.save(user=self.request.user)
+
+    # Optional: allow filtering by user
+    def get_queryset(self):
+        user = self.request.user
+        return TestSeries.objects.filter(user=user)
+
+
+class TestListViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Returns all tests for a given test series.
+    """
+    serializer_class = TestSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        series_id = self.request.query_params.get('series_id')
+        if series_id:
+            return Test.objects.filter(series_id=series_id)
+        return Test.objects.none()
+
+
+class QuestionListViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Returns all questions for a given test.
+    """
+    serializer_class = QuestionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        test_id = self.request.query_params.get('test_id')
+        if test_id:
+            return Question.objects.filter(test_id=test_id)
+        return Question.objects.none()
+
+
+# ============================
+# 🧠 Submission API
+# ============================
+
+class SubmissionDetailViewSet(viewsets.ModelViewSet):
+    """
+    Handles user submissions (for both MCQ and coding).
+    """
+    queryset = Submission.objects.all()
+    serializer_class = SubmissionDetailSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

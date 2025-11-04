@@ -1,0 +1,25 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.log
+db.sqlite3
+venv/
+*.pyc
+*.pyo
+*.pyd
+media/
+staticfiles/
+.env
+
+# Node / React (in case frontend folder is tracked from root)
+TheCodingSkillPlatformFrontend/node_modules/
+TheCodingSkillPlatformFrontend/dist/
+TheCodingSkillPlatformFrontend/build/
+
+# IDE / System files
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
